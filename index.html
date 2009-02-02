@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <link rel="stylesheet" href="jaxterm.css" />
+  <title>jaxterm</title>
+  <script src="prototype.js"></script>
+  <script src="jaxterm.js"></script>
+</head>
+
+<body onload="t = newScreen();" onkeypress="t.onkeypress(event)">
+  <h2>jaxterm</h2>
+  <div id="screen">
+  </div>
+  <script>
+    function newScreen() {
+      t = new Terminal('screen');
+      //new PeriodicalExecuter(function() { t.toggleCursor(); }, 0.5);
+      return t;
+    }
+  </script>
+</body>
+</html>
