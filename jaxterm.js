@@ -70,10 +70,14 @@ Terminal = Class.create({
   
   onkeypress: function(e) {
     //this.put(e.which);
-    console.log(e.which);
+    //a console.log(e.which);
     eval('t.put(String.fromCharCode(e.which))');
   },
-    
+
+  enterEscMode: function() {
+    this.escMode = 1;
+  },
+
   resize: function(newWidth, newHeight) {
     if (typeof(newWidth) != 'undefined' && newWidth > 0) this.screenWidth = newWidth;
     if (typeof(newHeight) != 'undefined' && newHeight > 0) this.screenHeight = newHeight;
@@ -100,7 +104,8 @@ Terminal = Class.create({
       this.matrixTable.deleteRow(this.screenHeight);
   },
   
-  pos = function(relX, relY, absX, absY) {
+  pos: function(relX, relY, absX, absY) {
+    //a console.log('(x,y)=('+this.x+','+this.y+')');
     if (typeof(relX) == 'object') {
       absX = relX[0];
       absY = relX[1];
@@ -112,10 +117,11 @@ Terminal = Class.create({
     if (typeof(relX) == 'number') this.x += relX;
     if (typeof(relY) == 'number') this.x += relY;
 
-    if (this.x < 0) this.x = 0;
-    if (this.y < 0) this.y = 0;
+    if (this.x < 0 || !this.x) this.x = 0;
+    if (this.y < 0 || !this.x) this.y = 0;
     if (this.x > this.screenWidth) this.x = this.screenWidth - 1;
     if (this.y > this.screenHeight) this.y = this.screenHeight - 1;
+    //a console.log('pos('+relX+','+relY+','+absX+','+absY+') (x,y)=('+this.x+','+this.y+')');
   },
   
   put: function(text) {
@@ -125,25 +131,28 @@ Terminal = Class.create({
     
   putChar: function(c) {
     isNormalChar = this.putCharAt(c[0], this.x, this.y);
+    //a console.log('Char ' + c.charCodeAt(0) + ' ('+c+') normal? ' + isNormalChar);
     if (isNormalChar && ++this.x >= this.screenWidth) this.crlf();
     this.moveCursor();
   },
   
   putCharAt: function(c, x, y) {
     if (typeof(c) == 'string') c = c.charCodeAt(0);
-    
+    //a console.log('EscMode ' + this.escMode);
     if (this.escMode) return this.putEscChar(c);
-    else if (f = this.specialChars[c]) return f(this);
+    else if (f = this.specialChars[c]) {
+      //a console.log('special: '+f);
+      return eval('this.'+f).bind(this)(); }
     else this.matrix[y][x].innerHTML = String.fromCharCode(c==32 ? ' ' : c);
     return true;
   },
   
   scrollDown: function() {
-    //console.log('scrollDown');
+    ////a console.log('scrollDown');
     if (!this.canScroll) return this.x = this.y = 0;
     
     row = this.screenHeight;
-    //console.log('this.screenHeight: ' + row + ' this.matrix.length ' + this.matrix.length);
+    ////a console.log('this.screenHeight: ' + row + ' this.matrix.length ' + this.matrix.length);
     this.matrix[row] = Array();
     thisRow = this.matrixTable.insertRow(row);
     for (var col=0; col < this.screenWidth; col++) {
@@ -153,7 +162,7 @@ Terminal = Class.create({
     this.matrix.shift();
     this.matrixTable.deleteRow(0);
     this.y--;
-    //console.log('(x,y)=('+this.x+','+this.y+') this.matrix.length ' + this.matrix.length);
+    ////a console.log('(x,y)=('+this.x+','+this.y+') this.matrix.length ' + this.matrix.length);
   },
       
   crlf: function() {
@@ -181,13 +190,14 @@ Terminal = Class.create({
   //getCursorToggler: function(self) { return function() { self.cursorDiv.toggle() } },
   getCursorToggler: function(self) { return function() {
     self.cursorCell = self.matrix[self.y][self.x];
-    if (self.cursorCell.style.backgroundColor == 'black')
-      self.cursorCell.style.backgroundColor = 'green';
-    else
-      self.cursorCell.style.backgroundColor = 'black';
+    //if (self.cursorCell.style.backgroundColor == 'black')
+    //  self.cursorCell.style.backgroundColor = 'green';
+    //else
+    //  self.cursorCell.style.backgroundColor = 'black';
   } },
-  
+    
   moveCursor: function() {
+    //a console.log('x,y' + this.x + ',' + this.y);
     /*cellPos = getElementAbsolutePos(this.matrix[this.y][this.x]);
     this.cursorDiv.style.top = cellPos[1]+'px';
     this.cursorDiv.style.left = cellPos[0]+'px'; */
@@ -200,16 +210,13 @@ Terminal = Class.create({
   },
   
   bksp: function() {
-    this.matrix[this.y][this.x].innerHTML = '&nbsp;'
+    this.matrix[this.y][this.x].innerHTML = '&nbsp;';
     if (--this.x < 0) { this.y--; this.x = this.screenWidth-1; }
     if (this.y < 0) { this.x = 0; this.y = 0; }
   },
   
-  enterEscMode: function() {
-    this.escMode = 1;
-  },
-  
   putEscChar: function(c) {
+    //a console.log('Got character ' + c + ' (' + String.fromCharCode(c) + ')');
     if (this.escMode == 1) {
       this.escBuffer = '';
       if (c != 0133) this.escMode = 0; // '['
@@ -221,7 +228,11 @@ Terminal = Class.create({
     else {
       command = String.fromCharCode(c);
       params = this.escBuffer.split(';');
-      if (f = escCommands[command]) f(params[0], params[1], params[2], params[3]);
+      //a console.log('escBuffer: ' + this.escBuffer + ' params: ' + params);
+      if (f = this.escCommands[command]) { 
+        //a console.log('cmd: ' + f);
+        eval('this.'+f).bind(this, params[0], params[1], params[2], params[3])(); }
+      this.escMode = 0;
     }
   },
   
@@ -233,10 +244,10 @@ Terminal = Class.create({
   cCPL: function(n) { this.pos(null, n, 0); },
   cCHA: function(n) { this.pos([null, n-1]); },
   cCUP: function(row, col) { this.pos([col-1, row-1]); },
-  cCED: function(n) {  },
-  cCEL: function(n) {  },
-  cCSU: function(n) {  },
-  cCSD: function(n) {  },
+  cED: function(n) {  },
+  cEL: function(n) {  },
+  cSU: function(n) {  },
+  cSD: function(n) {  },
 
   cSGR: function(code, m) {
     if (code == 0)
@@ -244,13 +255,13 @@ Terminal = Class.create({
     else if (code == 1)
       this.intensity = 1;
     else if (code >= 30 && code <= 39)
-      this.fgColor = colorTable[code - 30];
+      this.fgColor = this.colorTable[code - 30];
     else if (code >= 40 && code <= 49)
-      this.bgColor = colorTable[code - 40];
+      this.bgColor = this.colorTable[code - 40];
     else if (code >= 90 && code <= 99)
-      this.fgColor = colorTable[code - 90]; // XXX: These are supposed to be intense colors
+      this.fgColor = this.colorTable[code - 90]; // XXX: These are supposed to be intense colors
     else if (code >= 100 && code <= 109)
-      this.bgColor = colorTable[code - 100];
+      this.bgColor = this.colorTable[code - 100];
   },
   
   colorTable: {
@@ -258,26 +269,27 @@ Terminal = Class.create({
   },
 
   escCommands: {
-    'A': this.cCUU.bind(this),
-    'B': this.cCUD.bind(this),
-    'C': this.cCUF.bind(this),
-    'D': this.cCUB.bind(this),
-    'E': this.cCNL.bind(this),
-    'F': this.cCPL.bind(this),
-    'G': this.cCHA.bind(this),
-    'H': this.cCUP.bind(this),
-    'J': this.cED.bind(this),
-    'K': this.cEL.bind(this),
-    'S': this.cSU.bind(this),
-    'T': this.cSD.bind(this),
-    'f': this.cCUP.bind(this),
-    'm': this.cSGR.bind(this),
+    'A': 'cCUU',
+    'B': 'cCUD',
+    'C': 'cCUF',
+    'D': 'cCUB',
+    'E': 'cCNL',
+    'F': 'cCPL',
+    'G': 'cCHA',
+    'H': 'cCUP',
+    'J': 'cED',
+    'K': 'cEL',
+    'S': 'cSU',
+    'T': 'cSD',
+    'f': 'cCUP',
+    'm': 'cSGR',
+  },
   
   specialChars: {
-    010: this.bksp.bind(this),
-    012: this.crlf.bind(this),
-    015: this.crlf.bind(this),
-    033: this.enterEscMode.bind(this)
+    010: 'bksp',
+    012: 'crlf',
+    015: 'crlf',
+    033: 'enterEscMode'
   },
   
   personalities: {},
@@ -288,15 +300,34 @@ Terminal = Class.create({
   },
 
   openConnection: function(url) {
-    new Ajax.PeriodicalRequester(url, {
-      onSuccess: this.putTransport.bind(this),
-      onFailure: function(transport) { console.log(transport.status); },
-      frequency: 10,
-      decay: 2
-    });
+    this.req = new XMLHttpRequest();
+    this.req.open('GET', 'jaxterm.txt');
+    this.req.onreadystatechange = this.loadResponse.bind(this);
+    this.req.send(null);
+    this.responseTop = 0;
+    //new Ajax.PeriodicalRequester(url, {
+    //  onSuccess: this.putTransport.bind(this),
+    //  onFailure: function(transport) { (transport.status); },
+    //  frequency: 10,
+    //  decay: 2
+    //});
+  },
+  
+  loadResponse: function() {
+    if (this.req.readyState != 3) return;
+    if (this.responseTop >= this.req.responseText.length) return;
+    
+    for (var i=this.responseTop; i < this.req.responseText.length; i++)
+      this.putChar(this.req.responseText[i]);
   }
+});
 
-})
+//Terminal.specialChars = {
+//  010: function() { return this.bksp.bind(this) },
+//  012: function() { return this.crlf.bind(this) },
+//  015: function() { return this.crlf.bind(this) },
+//  033: function() { return this.enterEscMode.bind(this) },
+//}
 
 var __isFireFox = navigator.userAgent.match(/gecko/i);
 
