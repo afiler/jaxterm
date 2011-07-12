@@ -1,0 +1,1 @@
+jaxterm is a client-server pair to allow remote shell access from a web browser. Since writing this, another project, called shellinabox ( http://code.google.com/p/shellinabox/ ) came out, and it seems superior to jaxterm in basically every way. Please use that instead.
