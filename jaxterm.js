@@ -84,7 +84,7 @@ Terminal = Class.create({
     this.redraw();
   },
   
-  redraw: function() {  
+  xredraw: function() {  
     this.matrix = (this.matrix || Array()).slice(0, this.screenHeight);
     for (var row=0; row < this.screenHeight; row++) {
       thisRow = this.matrixTable.rows[row] || this.matrixTable.insertRow(row);
@@ -102,6 +102,16 @@ Terminal = Class.create({
     }
     for (var row=this.screenHeight; row < this.matrixTable.rows.length; row++)
       this.matrixTable.deleteRow(this.screenHeight);
+  },
+  
+  redraw: function() {
+    this.rows = this.rows || Array();
+    this.topRow = this.topRow || 0;
+    while (this.rows.length <= this.topRow + this.windowHeight) {
+      div = document.createElement('div');
+      div.class = 'row';
+      div.innerHTML = 
+        this.rows.push(
   },
   
   pos: function(relX, relY, absX, absY) {
